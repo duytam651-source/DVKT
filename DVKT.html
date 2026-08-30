@@ -1834,30 +1834,36 @@ const SUPABASE_ANON_KEY = 'sb_publishable_aLdfhtjl9_vmmiSniPwTuQ_ACE7ptwm';
 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /// 2. Hàm mẫu xử lý lưu trữ kép (Dual-Storage) - Đã tối ưu không sợ quên tham số
-async function saveDualStorageData(payload, STORAGE_KEY = 'COATING_CORE_DATA_V1', TABLE_NAME = 'coating_system_data') {
-    // Bước 2.1: Lưu trước vào localStorage (đảm bảo offline-first)
+async function saveDualStorageData(payloadData, STORAGE_KEY = 'COATING_CORE_DATA_V1', TABLE_NAME = 'coating_system_data') {
+    // 1. Lưu vào localStorage trước
     try {
         let localData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        localData.push(payload);
+        localData.push(payloadData);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
         console.log('Đã lưu thành công vào localStorage');
     } catch (err) {
         console.error('Lỗi lưu localStorage:', err);
     }
 
-    // Bước 2.2: Đồng thời đẩy lên Supabase
+    // 2. Đóng gói đúng cấu trúc cột của bảng Supabase (id, payload, updated_at)
+    const rowData = {
+        id: 'id_' + Date.now(),
+        payload: payloadData, // Toàn bộ dữ liệu của bạn nằm gọn trong cột jsonb này
+        updated_at: new Date().toISOString()
+    };
+
+    // 3. Đẩy lên Supabase
     try {
         const { data, error } = await supabase
-            .from('coating_system_data')
-            .insert([payload]);
+            .from(TABLE_NAME)
+            .insert([rowData]);
 
         if (error) throw error;
         console.log('Đã đồng bộ thành công lên Supabase!');
     } catch (err) {
-        console.warn('Không thể đẩy lên Supabase (có thể mất mạng):', err.message);
+        console.warn('Không thể đẩy lên Supabase:', err.message);
     }
 }
-
 // --- KẾT THÚC ĐOẠN CODE DÁN ---
 
 // (Phần window.onload sẵn có của bạn ở dưới cùng)
