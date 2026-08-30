@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Giám Sát Sơn & Hồ Sơ Kỹ Thuật (Coating Core System)</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #64748b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+
+        /* Sidebar Navigation */
+        #sidebar { width: 250px; background: var(--primary); color: white; display: flex; flex-direction: column; shrink: 0; transition: transform 0.2s ease; z-index: 100; }
+        .brand { padding: 18px 20px; font-weight: bold; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; }
+        .nav-list { list-style: none; overflow-y: auto; flex: 1; padding: 10px 0; }
+        .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #cbd5e1; transition: 0.15s; font-weight: 500; }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.15); color: white; border-left: 4px solid #60a5fa; }
+
+        /* Main Layout */
+        #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+        .topbar { background: var(--surface); padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .toggle-btn { display: none; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text); }
+        .content-area { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* UI Components */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        
+        .grid { display: grid; gap: 16px; }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+        .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; border-left: 4px solid var(--primary-light); }
+        .stat-val { font-size: 1.8rem; font-weight: bold; margin-top: 8px; color: var(--text); }
+        .stat-lbl { color: var(--secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; }
+        .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: #fff; }
+        .form-control:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        textarea.form-control { min-height: 80px; resize: vertical; }
+
+        /* Controls & Actions */
+        .btn { padding: 9px 16px; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; text-decoration: none; transition: 0.15s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary { background: #e2e8f0; color: var(--text); }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+        .action-bar { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+
+        /* Data Tables */
+        .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: white; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { background: #f1f5f9; font-weight: 600; color: var(--secondary); font-size: 0.8rem; text-transform: uppercase; }
+        tr:hover { background: #f8fafc; }
+
+        /* Status Badges */
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge-info { background: #e0f2fe; color: #0369a1; }
+        .badge-warning { background: #fef3c7; color: #b45309; }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-danger { background: #fee2e2; color: #b91c1c; }
+
+        /* Media / Image & File Uploader */
+        .img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; margin-top: 10px; }
+        .img-card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; position: relative; background: #eee; height: 110px; display: flex; align-items: center; justify-content: center; }
+        .img-card img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+        .img-card .img-remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 22px; height: 22px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 5; }
+        .file-card-doc { padding: 8px; font-size: 0.75rem; text-align: center; word-break: break-all; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f1f5f9; text-decoration: none; color: var(--text); }
+
+        /* Auto Sync Indicator */
+        .auto-sync-badge { font-size: 0.75rem; color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .auto-sync-badge::before { content: '●'; font-size: 1rem; color: var(--success); }
+
+        /* Tabs UI */
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+        .tab-item { padding: 10px 18px; cursor: pointer; font-weight: 600; color: var(--secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; }
+        .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Modal Backdrop */
+        .modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+        .modal { background: white; border-radius: var(--radius); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+
+        /* Print Document Layout */
+        @media print {
+            #sidebar, .topbar, .action-bar, .btn, .no-print { display: none !important; }
+            #main { overflow: visible; }
+            .content-area { padding: 0; }
+            .card { border: none; box-shadow: none; padding: 0; }
+            .print-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; height: 100%; transform: translateX(-100%); }
+            #sidebar.open { transform: translateX(0); }
+            .toggle-btn { display: block; }
+            .content-area { padding: 12px; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .action-bar > * { width: 100%; }
+        }
+    </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="brand">
+            <span>🛡️ COATING CORE</span>
+            <span style="font-size:0.7rem; background:rgba(255,255,255,0.2); padding:2px 6px; border-radius:4px;">v1.2</span>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item active" onclick="Nav.go('dashboard')">📊 Dashboard</li>
+            <li class="nav-item" onclick="Nav.go('projects')">🏗️ Công Trình</li>
+            <li class="nav-item" onclick="Nav.go('surveys')">🔍 Khảo Sát Bề Mặt</li>
+            <li class="nav-item" onclick="Nav.go('surfaceStandards')">⚙️ Tiêu Chuẩn Bề Mặt</li>
+            <li class="nav-item" onclick="Nav.go('inspectionTools')">🛠️ Dụng Cụ Kiểm Tra</li>
+            <li class="nav-item" onclick="Nav.go('specs')">⚙️ Quy Trình Sơn</li>
+            <li class="nav-item" onclick="Nav.go('supervisions')">📋 Giám Sát Thi Công</li>
+            <li class="nav-item" onclick="Nav.go('acceptances')">✅ Nghiệm Thu</li>
+            <li class="nav-item" onclick="Nav.go('incidents')">⚠️ Xử Lý Sự Cố</li>
+            <li class="nav-item" onclick="Nav.go('sales')">💼 Hỗ Trợ Sale</li>
+        </ul>
+    </div>
+
+    <div id="main">
+        <div class="topbar">
+            <button class="toggle-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+            <h3 id="page-title">Dashboard Overview</h3>
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span class="auto-sync-badge" title="Dữ liệu chỉ được lưu khi nhấn nút Lưu/Sao lưu">Chỉ lưu khi nhấn Lưu</span>
+                <span style="font-size:0.85rem; font-weight:600; color:var(--secondary);" id="current-date"></span>
+            </div>
+        </div>
+
+        <div class="content-area" id="app-view">
+        </div>
+    </div>
+
+    <div class="modal-bg" id="modal-container">
+        <div class="modal" id="modal-content"></div>
+    </div>
+
+<script>
+/**
+ * Application State & Database Engine (LocalStorage Driven)
+ */
+const DB_KEY = 'COATING_CORE_DATA_V1';
+
+const InitialSeed = {
+    projects: [
+        { id: 'PRJ-2026-01', name: 'Sơn Phủ Đáy Tàu Hải An 09', client: 'CTY Vận Tải Biển Hải An', location: 'Xưởng Dịch Vụ Cảng Hải Phòng', manager: 'KST. Nguyễn Văn Hùng', startDate: '2026-02-01', endDate: '2026-03-15', status: 'Đang thi công', note: 'Thi công chống bẩn bề mặt đáy vỏ sắt.' },
+        { id: 'PRJ-2026-02', name: 'Sơn Sàn Epoxy Nhà Máy Dược Hậu Giang', client: 'CP Dược Hậu Giang', location: 'KCN Tân Phú Thạnh, Hậu Giang', manager: 'KST. Trần Đình Khoa', startDate: '2026-02-10', endDate: '2026-03-01', status: 'Đang thi công', note: 'Yêu cầu độ sạch bề mặt SA 2.5.' },
+        { id: 'PRJ-2026-03', name: 'Bảo Trì Kết Cấu Thép Cầu Cảng PTSC', client: 'Tổng Cty PTSC', location: 'Cảng Dịch Vụ PTSC Vũng Tàu', manager: 'KST. Phạm Thanh Minh', startDate: '2026-01-15', endDate: '2026-02-20', status: 'Hoàn thành', note: 'Đã nghiệm thu toàn bộ.' }
+    ],
+    surveys: [
+        { id: 'SUR-001', projectId: 'PRJ-2026-01', date: '2026-02-02', inspector: 'Nguyễn Văn Hùng', structure: 'Tàu thuyền', cleanLevel: 'Sa 2.5', humidity: 75, temp: 28, dewPoint: 23, rustStatus: 'Bề mặt rỉ sét Grade C', oldPaintStatus: 'Lớp sơn cũ bong tróc 40%', problems: 'Muối bám nhiều bề mặt đáy', actionProposal: 'Phun nước áp lực cao rửa muối, rải hạt kim loại làm sạch Sa 2.5', conclusion: 'Đủ điều kiện phun lớp chống rỉ', images: [] },
+        { id: 'SUR-002', projectId: 'PRJ-2026-02', date: '2026-02-11', inspector: 'Trần Đình Khoa', structure: 'Sàn bê tông', cleanLevel: 'Hút bụi sạch', humidity: 68, temp: 30, dewPoint: 24, rustStatus: 'Không có', oldPaintStatus: 'Bê tông mới 28 ngày', problems: 'Bề mặt bám bẩn dầu mỡ nhẹ', actionProposal: 'Mài sàn tạo nhám, tẩy dầu mỡ chuyên dụng', conclusion: 'Đạt yêu cầu thi công lót Epoxy', images: [] }
+    ],
+    surfaceStandards: [
+        { id: 'STD-001', structureType: 'Kết cấu thép vỏ tàu biển', images: [] },
+        { id: 'STD-002', structureType: 'Sàn bê tông nhà xưởng', images: [] }
+    ],
+    inspectionTools: [
+        { id: 'TOO-001', toolName: 'Máy đo độ dày màng sơn khô (DFT Gauge)', purpose: 'Kiểm tra chiều dày màng sơn sau khi khô theo tiêu chuẩn kỹ thuật', images: [] },
+        { id: 'TOO-002', toolName: 'Đồng hồ đo nhiệt độ điểm sương (Dew Point Meter)', purpose: 'Kiểm tra nhiệt độ bề mặt và độ ẩm không khí trước khi thi công sơn', images: [] }
+    ],
+    specs: [
+        { id: 'SPC-001', projectId: 'PRJ-2026-01', systemName: 'Hệ Sơn Tàu Biển Chống Rỉ & Chống Bẩn', images: [], layers: [
+            { layerName: 'Sơn Lót Chống Rỉ Epoxy', product: 'Epoxy Anti-Rust 102', dft: '125 µm', coverage: '0.25 kg/m2', method: 'Phun chân không', dryTime: '4 giờ', tool: 'Máy phun sơn béc 0.021', notes: 'Thi công ngay trong 4h sau bắn hạt' },
+            { layerName: 'Sơn Phủ Chống Bẩn Đáy Tàu', product: 'AF-Marine BioGuard', dft: '150 µm', coverage: '0.30 kg/m2', method: 'Phun chân không', dryTime: '8 giờ', tool: 'Máy phun sơn béc 0.023', notes: 'Sơn 2 lớp hoàn thiện' }
+        ]},
+        { id: 'SPC-002', projectId: 'PRJ-2026-02', systemName: 'Hệ Sơn Sàn Epoxy Tự Phẳng 2mm', images: [], layers: [
+            { layerName: 'Sơn Lót Epoxy Thấm Sâu', product: 'Primer Clear EP-10', dft: '50 µm', coverage: '0.15 kg/m2', method: 'Lăn Rulo', dryTime: '6 giờ', tool: 'Rulo lông ngắn', notes: 'Lăn đều tránh đọng sơn' },
+            { layerName: 'Sơn Phủ Epoxy Tự Phẳng', product: 'Topcoat Self-Leveling EP-300', dft: '2000 µm', coverage: '2.4 kg/m2', method: 'Bàn gạt răng cưa', dryTime: '24 giờ', tool: 'Bàn gạt + Rulo phá bọt khí', notes: 'Xử lý bọt khí ngay sau gạt' }
+        ]}
+    ],
+    supervisions: [
+        { id: 'SUP-001', projectId: 'PRJ-2026-01', date: '2026-02-12', area: 'Đáy mạn trái', team: 'Đội Thi Công 1', supervisor: 'Nguyễn Văn Hùng', temp: 29, humidity: 72, dewPoint: 23, weather: 'Nắng nhẹ', cleanLevel: 'Sa 2.5', roughness: '75 µm', surfTemp: 31, product: 'Epoxy Anti-Rust 102', batchLot: 'LOT-99281', ratio: '4:1', mixTime: '08:00', method: 'Phun sơn', layers: 'Lớp 1', dftWft: '130 µm DFT', interval: 'Theo quy trình', status: 'Đạt', note: 'Bề mặt khô sạch, màng sơn liên kết tốt', images: [] },
+        { id: 'SUP-002', projectId: 'PRJ-2026-01', date: '2026-02-13', area: 'Đáy mạn phải', team: 'Đội Thi Công 1', supervisor: 'Nguyễn Văn Hùng', temp: 30, humidity: 70, dewPoint: 24, weather: 'Nắng', cleanLevel: 'Sa 2.5', roughness: '70 µm', surfTemp: 32, product: 'Epoxy Anti-Rust 102', batchLot: 'LOT-99281', ratio: '4:1', mixTime: '08:15', method: 'Phun sơn', layers: 'Lớp 1', dftWft: '125 µm DFT', interval: 'Theo quy trình', status: 'Đạt', note: 'Thi công đúng tiến độ', images: [] },
+        { id: 'SUP-003', projectId: 'PRJ-2026-02', date: '2026-02-14', area: 'Phòng sạch số 1', team: 'Đội Thi Công Epoxy', supervisor: 'Trần Đình Khoa', temp: 28, humidity: 65, dewPoint: 21, weather: 'Trong nhà', cleanLevel: 'Hút bụi', roughness: 'Đã mài', surfTemp: 29, product: 'Primer Clear EP-10', batchLot: 'LOT-1029', ratio: '3:1', mixTime: '09:00', method: 'Lăn Rulo', layers: 'Lớp lót', dftWft: '55 µm DFT', interval: 'Khô 6 giờ', status: 'Đạt', note: 'Sàn phẳng, thấm đều', images: [] },
+        { id: 'SUP-004', projectId: 'PRJ-2026-02', date: '2026-02-15', area: 'Phòng sạch số 1', team: 'Đội Thi Công Epoxy', supervisor: 'Trần Đình Khoa', temp: 29, humidity: 68, dewPoint: 22, weather: 'Trong nhà', cleanLevel: 'Sạch bụi', roughness: 'Lớp lót khô', surfTemp: 30, product: 'Topcoat Self-Leveling EP-300', batchLot: 'LOT-8821', ratio: '5:1', mixTime: '13:30', method: 'Gạt phẳng', layers: 'Lớp phủ 2mm', dftWft: '2000 µm', interval: 'N/A', status: 'Đạt', note: 'Bề mặt bóng phẳng tuyệt đối', images: [] },
+        { id: 'SUP-005', projectId: 'PRJ-2026-01', date: '2026-02-16', area: 'Khu vực chân chân vịt', team: 'Đội Thi Công 2', supervisor: 'Nguyễn Văn Hùng', temp: 31, humidity: 78, dewPoint: 26, weather: 'Nhiều mây', cleanLevel: 'Sa 2.0', roughness: '50 µm', surfTemp: 32, product: 'AF-Marine BioGuard', batchLot: 'LOT-7712', ratio: '1:1', mixTime: '14:00', method: 'Cọ lăn', layers: 'Lớp phủ 1', dftWft: '90 µm DFT', interval: 'Cần xử lý', status: 'Không đạt', note: 'Màng sơn bị rỗ khí do pha sai tỷ lệ dung môi', images: [] }
+    ],
+    acceptances: [
+        { id: 'ACC-001', projectId: 'PRJ-2026-03', item: 'Toàn bộ kết cấu thép dàn chân đế', date: '2026-02-20', ownerRep: 'Đặng Ngọc Sơn (PTSC)', contractorRep: 'Lê Văn Tám (Thi công)', techRep: 'Phạm Thanh Minh (Kỹ thuật)', content: 'Nghiệm thu độ dày tổng thể màng sơn và độ bám dính.', criteria: 'DFT >= 250 µm, Bám dính Cross-hatch Class 0', result: 'Đạt', defects: 'Không có', action: 'Hoàn thiện hồ sơ nghiệm thu', conclusion: 'Chấp nhận nghiệm thu bàn giao đưa vào sử dụng', images: [] }
+    ],
+    incidents: [
+        { id: 'INC-001', projectId: 'PRJ-2026-01', date: '2026-02-16', location: 'Chân vịt mạn trái', description: 'Xuất hiện rỗ khí và rộp nhẹ bề mặt sơn phủ chống bẩn.', cause: 'Pha chế dung môi vượt quá 15% quy định và thi công khi độ ẩm không khí tăng cao.', solution: 'Xả nhám toàn bộ vùng rộp, lau sạch bằng dung môi chuẩn, phun lại 1 lớp phủ DFT 100µm.', manager: 'Nguyễn Văn Hùng', deadline: '2026-02-18', result: 'Đã khắc phục xong, kiểm tra bám dính đạt', status: 'Đã xử lý', images: [] },
+        { id: 'INC-002', projectId: 'PRJ-2026-02', date: '2026-02-14', location: 'Góc tường phòng sạch 2', description: 'Lớp sơn lót không khô sau 12 giờ.', cause: 'Khu vực góc thiếu thông gió, độ ẩm bề mặt cục bộ cao.', solution: 'Đặt quạt sấy công nghiệp 4 giờ, kiểm tra lại độ cứng màng sơn.', manager: 'Trần Đình Khoa', deadline: '2026-02-15', result: 'Khô hoàn toàn, tiến hành gạt sơn tự phẳng', status: 'Đóng sự cố', images: [] }
+    ],
+    sales: [
+        { id: 'SAL-001', client: 'Cty Đóng Tàu Sông Cấm', project: 'Dự án đóng mới 02 Tàu Kéo 3000HP', date: '2026-02-17', requester: 'Nguyễn Thị Hoa (Sales)', content: 'Cần tài liệu so sánh thông số kỹ thuật hệ sơn chống bẩn BioGuard vs Jotun SeaForce', techInfo: 'Đã gửi bản So sánh DFT & Thời gian dưỡng màng sơn.', marketInfo: 'Khách hàng quan tâm đến tiến độ hạ thủy.', productStatus: 'Hàng sẵn kho 2000 Lít', paintLoanStatus: 'Không', qty: '2000 Lít', deadline: '2026-02-19', handler: 'KST. Phạm Thanh Minh', result: 'Sales đã gửi tư vấn cho Chủ tàu', status: 'Đã hoàn thành', images: [] }
+    ]
+};
+
+// Data Controller
+const Store = {
+    get: () => {
+        let data = JSON.parse(localStorage.getItem(DB_KEY));
+        if (!data) {
+            data = InitialSeed;
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+        } else {
+            // Ensure newly added fields exist if loading from previous LocalStorage version
+            if (!data.surfaceStandards) data.surfaceStandards = InitialSeed.surfaceStandards;
+            if (!data.inspectionTools) data.inspectionTools = InitialSeed.inspectionTools;
+        }
+        return data;
+    },
+    set: (data) => localStorage.setItem(DB_KEY, JSON.stringify(data)),
+    init: () => {
+        if (!localStorage.getItem(DB_KEY)) {
+            Store.set(InitialSeed);
+        }
+    }
+};
+
+/**
+ * UI & Router Engine
+ */
+const Nav = {
+    go: (view, param = null) => {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick')?.includes(`'${view}'`));
+        if(activeNav) activeNav.classList.add('active');
+
+        document.getElementById('sidebar').classList.remove('open');
+        Views[view](param);
+    }
+};
+
+/**
+ * Helper Utilities
+ */
+const Utils = {
+    getProjectName: (db, id) => (db.projects.find(p => p.id === id) || {}).name || id,
+    formatDate: (str) => str ? new Date(str).toLocaleDateString('vi-VN') : '',
+    badgeClass: (status) => {
+        switch(status) {
+            case 'Đạt': case 'Hoàn thành': case 'Đã xử lý': case 'Đóng sự cố': case 'Đã hoàn thành': return 'badge-success';
+            case 'Đang thi công': case 'Đang xử lý': case 'Đang khảo sát': return 'badge-info';
+            case 'Chờ nghiệm thu': case 'Chờ xử lý': case 'Cần xử lý': return 'badge-warning';
+            default: return 'badge-danger';
+        }
+    },
+    modal: (title, htmlContent) => {
+        const container = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="color:var(--primary)">${title}</h3>
+                <button class="btn btn-secondary btn-sm" onclick="Utils.closeModal()">✕ Đóng</button>
+            </div>
+            <div>${htmlContent}</div>
+        `;
+        container.style.display = 'flex';
+    },
+    closeModal: () => {
+        document.getElementById('modal-container').style.display = 'none';
+    },
+    fileToBase64: (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve({ data: reader.result, name: file.name, type: file.type });
+        reader.onerror = error => reject(error);
+    }),
+    
+    windowImages: [],
+    handleImageUpload: async (files) => {
+        for (let file of files) {
+            const fileData = await Utils.fileToBase64(file);
+            Utils.windowImages.push(fileData);
+        }
+        Utils.renderImageUploaderUI();
+    },
+    removeImage: (index) => {
+        Utils.windowImages.splice(index, 1);
+        Utils.renderImageUploaderUI();
+    },
+    renderImageUploaderUI: () => {
+        const container = document.getElementById('img-uploader-list');
+        if (!container) return;
+        container.innerHTML = Utils.windowImages.map((fileObj, idx) => {
+            const dataStr = typeof fileObj === 'string' ? fileObj : fileObj.data;
+            const fileName = typeof fileObj === 'object' ? fileObj.name : 'Tệp đính kèm';
+            const isImg = dataStr.startsWith('data:image/') || dataStr.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i);
+
+            if (isImg) {
+                return `
+                    <div class="img-card">
+                        <img src="${dataStr}" onclick="Utils.previewImage('${dataStr}')" title="Bấm để xem lớn">
+                        <button type="button" class="img-remove" onclick="Utils.removeImage(${idx})">✕</button>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="img-card">
+                        <button type="button" class="img-remove" onclick="Utils.removeImage(${idx})">✕</button>
+                        <a href="${dataStr}" download="${fileName}" class="file-card-doc" title="Tải về file này">
+                            📄 <strong style="display:block; font-size:10px; margin-top:4px;">${fileName}</strong>
+                        </a>
+                    </div>
+                `;
+            }
+        }).join('');
+    },
+    renderImageGallery: (images = []) => {
+        if (!images || images.length === 0) return '<p style="color:var(--secondary); font-size:0.8rem; font-style:italic;">Không có tài liệu/hình ảnh đính kèm.</p>';
+        return `
+            <div class="img-grid">
+                ${images.map((fileObj) => {
+                    const dataStr = typeof fileObj === 'string' ? fileObj : fileObj.data;
+                    const fileName = typeof fileObj === 'object' ? fileObj.name : 'Tệp đính kèm';
+                    const isImg = dataStr.startsWith('data:image/') || dataStr.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i);
+
+                    if (isImg) {
+                        return `
+                            <div class="img-card">
+                                <img src="${dataStr}" onclick="Utils.previewImage('${dataStr}')" title="Click để phóng to">
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="img-card">
+                                <a href="${dataStr}" download="${fileName}" class="file-card-doc" title="Bấm để tải về ${fileName}">
+                                    📂 <strong style="display:block; font-size:10px; margin-top:4px;">${fileName}</strong>
+                                </a>
+                            </div>
+                        `;
+                    }
+                }).join('')}
+            </div>
+        `;
+    },
+    previewImage: (src) => {
+        const html = `
+            <div style="text-align:center;">
+                <img src="${src}" style="max-width:100%; max-height:70vh; border-radius:6px; margin-bottom:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div>
+                    <a href="${src}" download="coating-file-${Date.now()}" class="btn btn-primary btn-sm">📥 Tải Phóng To Này Về</a>
+                </div>
+            </div>
+        `;
+        const container = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="color:var(--primary)">Xem Tài Liệu / Hình Ảnh</h3>
+                <button class="btn btn-secondary btn-sm" onclick="Utils.closeModal()">✕ Đóng</button>
+            </div>
+            <div>${html}</div>
+        `;
+        container.style.display = 'flex';
+    }
+};
+
+/**
+ * Views Modules Rendering Logic
+ */
+const Views = {
+    dashboard: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Dashboard Overview';
+        
+        const countByStatus = (status) => db.projects.filter(p => p.status === status).length;
+        const pendingIncidents = db.incidents.filter(i => i.status !== 'Đóng sự cố' && i.status !== 'Đã xử lý').length;
+        const pendingSales = db.sales.filter(s => s.status !== 'Đã hoàn thành').length;
+
+        document.getElementById('app-view').innerHTML = `
+            <div class="grid grid-4" style="margin-bottom:20px;">
+                <div class="stat-box">
+                    <div class="stat-lbl">Tổng Công Trình</div>
+                    <div class="stat-val">${db.projects.length}</div>
+                </div>
+                <div class="stat-box" style="border-left-color: var(--primary);">
+                    <div class="stat-lbl">Đang Thi Công</div>
+                    <div class="stat-val">${countByStatus('Đang thi công')}</div>
+                </div>
+                <div class="stat-box" style="border-left-color: var(--warning);">
+                    <div class="stat-lbl">Sự Cố Đang Xử Lý</div>
+                    <div class="stat-val">${pendingIncidents}</div>
+                </div>
+                <div class="stat-box" style="border-left-color: var(--success);">
+                    <div class="stat-lbl">Hỗ Trợ Sale Đang Mở</div>
+                    <div class="stat-val">${pendingSales}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-title">
+                        <span>🏗️ Tiến Độ Công Trình Gần Đây</span>
+                        <button class="btn btn-primary btn-sm" onclick="Nav.go('projects')">Quản lý</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Tên Công Trình</th><th>Trạng Thái</th><th>Người Phụ Trách</th></tr>
+                            </thead>
+                            <tbody>
+                                ${db.projects.map(p => `
+                                    <tr style="cursor:pointer;" onclick="Nav.go('projectDetail', '${p.id}')">
+                                        <td><strong>${p.name}</strong><br><small color="var(--secondary)">${p.client}</small></td>
+                                        <td><span class="badge ${Utils.badgeClass(p.status)}">${p.status}</span></td>
+                                        <td>${p.manager}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span>📋 Nhật Ký Giám Sát Mới Nhất</span>
+                        <button class="btn btn-primary btn-sm" onclick="Nav.go('supervisions')">Xem tất cả</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Ngày</th><th>Công Trình</th><th>Kết Quả</th></tr>
+                            </thead>
+                            <tbody>
+                                ${db.supervisions.slice(-4).reverse().map(s => `
+                                    <tr>
+                                        <td>${Utils.formatDate(s.date)}</td>
+                                        <td>${Utils.getProjectName(db, s.projectId)}</td>
+                                        <td><span class="badge ${Utils.badgeClass(s.status)}">${s.status}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // New Module: Surface Standards (Tiêu chuẩn bề mặt kết cấu)
+    surfaceStandards: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Tiêu Chuẩn Bề Mặt Kết Cấu';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.surfaceStandardForm()">+ Thêm Tiêu Chuẩn Bề Mặt</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Loại Kết Cấu</th>
+                            <th>Hình Ảnh / Tài Liệu Tiêu Chuẩn</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${db.surfaceStandards.map((item, idx) => `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td><strong>${item.structureType}</strong></td>
+                                <td>${(item.images && item.images.length > 0) ? `<button class="btn btn-secondary btn-sm" onclick="Utils.previewImage('${typeof item.images[0] === 'string' ? item.images[0] : item.images[0].data}')">📷 ${item.images.length} tệp</button>` : 'Không có'}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm" onclick="Views.surfaceStandardForm('${item.id}')">✏️ Sửa</button>
+                                    <button class="btn btn-danger btn-sm" onclick="Views.deleteSurfaceStandard('${item.id}')">🗑️ Xóa</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    },
+
+    surfaceStandardForm: (id = null) => {
+        const db = Store.get();
+        const std = id ? db.surfaceStandards.find(x => x.id === id) : {
+            id: 'STD-' + Date.now().toString().slice(-4),
+            structureType: '',
+            images: []
+        };
+
+        Utils.windowImages = [...(std.images || [])];
+
+        Utils.modal(id ? 'Sửa Tiêu Chuẩn Bề Mặt Kết Cấu' : 'Thêm Tiêu Chuẩn Bề Mặt Kết Cấu', `
+            <form onsubmit="Views.saveSurfaceStandard(event, '${id || ''}')">
+                <div class="form-group">
+                    <label>Loại Kết Cấu</label>
+                    <input type="text" id="std-type" class="form-control" value="${std.structureType}" placeholder="Nhập loại kết cấu (vd: Tàu thuyền, sàn bê tông...)" required>
+                </div>
+                <div class="form-group">
+                    <label>📁 Tải Hình Ảnh / Tài Liệu (JPG, JPEG, PNG, WEBP, PDF, DOCX, XLSX)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu và đóng</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveSurfaceStandard: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'STD-' + Date.now().toString().slice(-4),
+            structureType: document.getElementById('std-type').value,
+            images: [...Utils.windowImages]
+        };
+
+        if (existingId) {
+            const idx = db.surfaceStandards.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.surfaceStandards[idx] = item;
+        } else {
+            db.surfaceStandards.push(item);
+        }
+
+        Store.set(db);
+        Views.surfaceStandards();
+    },
+
+    deleteSurfaceStandard: (id) => {
+        if (confirm('Bạn có chắc chắn muốn xóa tiêu chuẩn bề mặt này?')) {
+            const db = Store.get();
+            db.surfaceStandards = db.surfaceStandards.filter(x => x.id !== id);
+            Store.set(db);
+            Views.surfaceStandards();
+        }
+    },
+
+    // New Module: Inspection Tools (Dụng cụ kiểm tra)
+    inspectionTools: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Danh Sách Dụng Cụ Kiểm Tra';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.inspectionToolForm()">+ Thêm Dụng Cụ Kiểm Tra</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Dụng Cụ</th>
+                            <th>Mục Đích Sử Dụng</th>
+                            <th>Hình Ảnh / Tài Liệu</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${db.inspectionTools.map((item, idx) => `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td><strong>${item.toolName}</strong></td>
+                                <td>${item.purpose}</td>
+                                <td>${(item.images && item.images.length > 0) ? `<button class="btn btn-secondary btn-sm" onclick="Utils.previewImage('${typeof item.images[0] === 'string' ? item.images[0] : item.images[0].data}')">📷 ${item.images.length} tệp</button>` : 'Không có'}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm" onclick="Views.inspectionToolForm('${item.id}')">✏️ Sửa</button>
+                                    <button class="btn btn-danger btn-sm" onclick="Views.deleteInspectionTool('${item.id}')">🗑️ Xóa</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    },
+
+    inspectionToolForm: (id = null) => {
+        const db = Store.get();
+        const tool = id ? db.inspectionTools.find(x => x.id === id) : {
+            id: 'TOO-' + Date.now().toString().slice(-4),
+            toolName: '',
+            purpose: '',
+            images: []
+        };
+
+        Utils.windowImages = [...(tool.images || [])];
+
+        Utils.modal(id ? 'Sửa Dụng Cụ Kiểm Tra' : 'Thêm Dụng Cụ Kiểm Tra', `
+            <form onsubmit="Views.saveInspectionTool(event, '${id || ''}')">
+                <div class="form-group">
+                    <label>Dụng Cụ</label>
+                    <input type="text" id="too-name" class="form-control" value="${tool.toolName}" placeholder="Nhập tên dụng cụ..." required>
+                </div>
+                <div class="form-group">
+                    <label>Mục Đích Sử Dụng</label>
+                    <textarea id="too-purpose" class="form-control" placeholder="Nhập mục đích sử dụng..." required>${tool.purpose}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>📁 Tải Hình Ảnh / Tài Liệu (JPG, JPEG, PNG, WEBP, PDF, DOCX, XLSX)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu và đóng</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveInspectionTool: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'TOO-' + Date.now().toString().slice(-4),
+            toolName: document.getElementById('too-name').value,
+            purpose: document.getElementById('too-purpose').value,
+            images: [...Utils.windowImages]
+        };
+
+        if (existingId) {
+            const idx = db.inspectionTools.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.inspectionTools[idx] = item;
+        } else {
+            db.inspectionTools.push(item);
+        }
+
+        Store.set(db);
+        Views.inspectionTools();
+    },
+
+    deleteInspectionTool: (id) => {
+        if (confirm('Bạn có chắc chắn muốn xóa dụng cụ kiểm tra này?')) {
+            const db = Store.get();
+            db.inspectionTools = db.inspectionTools.filter(x => x.id !== id);
+            Store.set(db);
+            Views.inspectionTools();
+        }
+    },
+
+    // Module 1: Projects Management
+    projects: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Quản Lý Công Trình';
+
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <div style="display:flex; gap:8px; flex:1; max-width:500px;">
+                    <input type="text" id="search-prj" class="form-control" placeholder="Tìm tên, khách hàng..." oninput="Views.filterProjects()">
+                    <select id="filter-prj-status" class="form-control" style="width:160px;" onchange="Views.filterProjects()">
+                        <option value="">Tất cả trạng thái</option>
+                        <option>Khảo sát</option>
+                        <option>Lập quy trình</option>
+                        <option>Đang thi công</option>
+                        <option>Chờ nghiệm thu</option>
+                        <option>Đã nghiệm thu</option>
+                        <option>Hoàn thành</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="Views.projectForm()">+ Thêm Công Trình</button>
+            </div>
+
+            <div class="table-container">
+                <table id="tbl-projects">
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên Công Trình</th>
+                            <th>Khách Hàng</th>
+                            <th>Địa Điểm</th>
+                            <th>Phụ Trách</th>
+                            <th>Trạng Thái</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        `;
+        Views.filterProjects();
+    },
+
+    filterProjects: () => {
+        const db = Store.get();
+        const q = document.getElementById('search-prj').value.toLowerCase();
+        const st = document.getElementById('filter-prj-status').value;
+
+        const filtered = db.projects.filter(p => 
+            (p.name.toLowerCase().includes(q) || p.client.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)) &&
+            (st === '' || p.status === st)
+        );
+
+        const tbody = document.querySelector('#tbl-projects tbody');
+        tbody.innerHTML = filtered.map(p => `
+            <tr>
+                <td><code>${p.id}</code></td>
+                <td><strong style="color:var(--primary); cursor:pointer;" onclick="Nav.go('projectDetail', '${p.id}')">${p.name}</strong></td>
+                <td>${p.client}</td>
+                <td>${p.location}</td>
+                <td>${p.manager}</td>
+                <td><span class="badge ${Utils.badgeClass(p.status)}">${p.status}</span></td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="Nav.go('projectDetail', '${p.id}')">📂 Hồ Sơ</button>
+                    <button class="btn btn-secondary btn-sm" onclick="Views.projectForm('${p.id}')">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="Views.deleteProject('${p.id}')">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    },
+
+    projectForm: (id = null) => {
+        const db = Store.get();
+        const prj = id ? db.projects.find(p => p.id === id) : { id: 'PRJ-' + Date.now().toString().slice(-4), name: '', client: '', location: '', manager: '', startDate: '', endDate: '', status: 'Khảo sát', note: '' };
+
+        Utils.modal(id ? 'Sửa Công Trình' : 'Thêm Công Trình Mới', `
+            <form onsubmit="Views.saveProject(event, '${id || ''}')">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Mã Công Trình</label>
+                        <input type="text" id="p-id" class="form-control" value="${prj.id}" required ${id ? 'readonly' : ''}>
+                    </div>
+                    <div class="form-group">
+                        <label>Tên Công Trình</label>
+                        <input type="text" id="p-name" class="form-control" value="${prj.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Khách Hàng</label>
+                        <input type="text" id="p-client" class="form-control" value="${prj.client}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Địa Điểm</label>
+                        <input type="text" id="p-location" class="form-control" value="${prj.location}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Người Phụ Trách Kỹ Thuật</label>
+                        <input type="text" id="p-manager" class="form-control" value="${prj.manager}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng Thái</label>
+                        <select id="p-status" class="form-control">
+                            ${['Khảo sát', 'Lập quy trình', 'Đang thi công', 'Chờ nghiệm thu', 'Đã nghiệm thu', 'Hoàn thành', 'Bảo hành'].map(s => `<option ${prj.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày Bắt Đầu</label>
+                        <input type="date" id="p-start" class="form-control" value="${prj.startDate}">
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày Dự Kiến Hoàn Thành</label>
+                        <input type="date" id="p-end" class="form-control" value="${prj.endDate}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Ghi Chú</label>
+                    <textarea id="p-note" class="form-control">${prj.note}</textarea>
+                </div>
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu & Đóng</button>
+                </div>
+            </form>
+        `);
+    },
+
+    saveProject: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: document.getElementById('p-id').value,
+            name: document.getElementById('p-name').value,
+            client: document.getElementById('p-client').value,
+            location: document.getElementById('p-location').value,
+            manager: document.getElementById('p-manager').value,
+            status: document.getElementById('p-status').value,
+            startDate: document.getElementById('p-start').value,
+            endDate: document.getElementById('p-end').value,
+            note: document.getElementById('p-note').value,
+        };
+
+        if (existingId) {
+            const index = db.projects.findIndex(p => p.id === existingId);
+            if (index !== -1) db.projects[index] = item;
+        } else {
+            const index = db.projects.findIndex(p => p.id === item.id);
+            if (index !== -1) db.projects[index] = item;
+            else db.projects.push(item);
+        }
+
+        Store.set(db);
+        if (document.getElementById('tbl-projects')) Views.filterProjects();
+    },
+
+    deleteProject: (id) => {
+        if (confirm('Xóa công trình này sẽ mất dữ liệu liên quan. Bạn có chắc chắn?')) {
+            const db = Store.get();
+            db.projects = db.projects.filter(p => p.id !== id);
+            Store.set(db);
+            Views.projects();
+        }
+    },
+
+    projectDetail: (projectId) => {
+        const db = Store.get();
+        const prj = db.projects.find(p => p.id === projectId);
+        if(!prj) return Nav.go('projects');
+
+        document.getElementById('page-title').innerText = `Hồ Sơ: ${prj.name}`;
+
+        const surveys = db.surveys.filter(s => s.projectId === projectId);
+        const specs = db.specs.filter(s => s.projectId === projectId);
+        const supervisions = db.supervisions.filter(s => s.projectId === projectId);
+        const acceptances = db.acceptances.filter(a => a.projectId === projectId);
+        const incidents = db.incidents.filter(i => i.projectId === projectId);
+
+        document.getElementById('app-view').innerHTML = `
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h2>${prj.name} <span class="badge ${Utils.badgeClass(prj.status)}">${prj.status}</span></h2>
+                        <p style="color:var(--secondary); margin-top:4px;">Mã: ${prj.id} | Khách hàng: <strong>${prj.client}</strong> | Địa điểm: ${prj.location}</p>
+                        <p style="color:var(--secondary);">Phụ trách: ${prj.manager} | Thời gian: ${prj.startDate} → ${prj.endDate}</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.print()">🖨️ In Bộ Hồ Sơ Công Trình</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab-item active" onclick="Views.switchTab(this, 'tab-surveys')">🔍 Khảo Sát (${surveys.length})</div>
+                <div class="tab-item" onclick="Views.switchTab(this, 'tab-specs')">⚙️ Quy Trình Sơn (${specs.length})</div>
+                <div class="tab-item" onclick="Views.switchTab(this, 'tab-supervisions')">📋 Giám Sát & Nhật Ký (${supervisions.length})</div>
+                <div class="tab-item" onclick="Views.switchTab(this, 'tab-acceptances')">✅ Nghiệm Thu (${acceptances.length})</div>
+                <div class="tab-item" onclick="Views.switchTab(this, 'tab-incidents')">⚠️ Sự Cố (${incidents.length})</div>
+            </div>
+
+            <div id="tab-surveys" class="tab-content">
+                <div class="action-bar"><button class="btn btn-primary btn-sm" onclick="Views.surveyForm(null, '${projectId}')">+ Thêm Khảo Sát</button></div>
+                ${surveys.map(s => `
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <h4>Khảo Sát Ngày: ${Utils.formatDate(s.date)} - Người KS: ${s.inspector}</h4>
+                            <div>
+                                <button class="btn btn-secondary btn-sm" onclick="Views.surveyForm('${s.id}')">✏️ Sửa</button>
+                                <button class="btn btn-danger btn-sm" onclick="Views.deleteSurvey('${s.id}')">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                        <p style="margin-top:8px;"><strong>Kết cấu:</strong> ${s.structure} | <strong>Độ sạch:</strong> ${s.cleanLevel} | <strong>Nhiệt độ:</strong> ${s.temp}°C | <strong>Độ ẩm:</strong> ${s.humidity}%</p>
+                        <p><strong>Hiện trạng:</strong> ${s.rustStatus}, ${s.oldPaintStatus}</p>
+                        <p><strong>Kết luận & Đề xuất:</strong> ${s.conclusion} - ${s.actionProposal}</p>
+                        <div style="margin-top:10px;">
+                            <strong>Tài liệu / Hình ảnh hiện trường:</strong>
+                            ${Utils.renderImageGallery(s.images)}
+                        </div>
+                    </div>
+                `).join('') || '<p>Chưa có dữ liệu khảo sát.</p>'}
+            </div>
+
+            <div id="tab-specs" class="tab-content" style="display:none;">
+                <div class="action-bar"><button class="btn btn-primary btn-sm" onclick="Views.specForm(null, '${projectId}')">+ Thêm Quy Trình Sơn</button></div>
+                ${specs.map(sp => `
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                            <h4>Quy Trình: ${sp.systemName}</h4>
+                            <div>
+                                <button class="btn btn-secondary btn-sm" onclick="Views.specForm('${sp.id}')">✏️ Sửa</button>
+                                <button class="btn btn-danger btn-sm" onclick="Views.deleteSpec('${sp.id}')">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                        <table style="margin-top:10px;">
+                            <thead><tr><th>Lớp</th><th>Sản Phẩm</th><th>Độ Dày (DFT)</th><th>Định Mức</th><th>Phương Pháp</th></tr></thead>
+                            <tbody>
+                                ${sp.layers.map(l => `<tr><td>${l.layerName}</td><td>${l.product}</td><td>${l.dft}</td><td>${l.coverage}</td><td>${l.method}</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                        <div style="margin-top:10px;">
+                            <strong>Tài liệu / Hình ảnh / Bản vẽ kỹ thuật:</strong>
+                            ${Utils.renderImageGallery(sp.images)}
+                        </div>
+                    </div>
+                `).join('') || '<p>Chưa lập quy trình sơn.</p>'}
+            </div>
+
+            <div id="tab-supervisions" class="tab-content" style="display:none;">
+                <div class="action-bar"><button class="btn btn-primary btn-sm" onclick="Views.supervisionForm(null, '${projectId}')">+ Thêm Nhật Ký Giám Sát</button></div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Ngày</th><th>Khu Vực</th><th>Hạng Mục/Sản Phẩm</th><th>DFT</th><th>Hình Ảnh & File</th><th>Kết Quả</th><th>Thao Tác</th></tr></thead>
+                        <tbody>
+                            ${supervisions.map(s => `
+                                <tr>
+                                    <td>${Utils.formatDate(s.date)}</td>
+                                    <td>${s.area}</td>
+                                    <td>${s.product} (${s.layers})</td>
+                                    <td>${s.dftWft}</td>
+                                    <td>${(s.images && s.images.length > 0) ? `<button class="btn btn-secondary btn-sm" onclick="Utils.previewImage('${typeof s.images[0] === 'string' ? s.images[0] : s.images[0].data}')">📷 ${s.images.length} tệp</button>` : 'Không có'}</td>
+                                    <td><span class="badge ${Utils.badgeClass(s.status)}">${s.status}</span></td>
+                                    <td>
+                                        <button class="btn btn-secondary btn-sm" onclick="Views.supervisionForm('${s.id}')">✏️</button>
+                                        <button class="btn btn-danger btn-sm" onclick="Views.deleteSupervision('${s.id}')">🗑️</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-acceptances" class="tab-content" style="display:none;">
+                <div class="action-bar"><button class="btn btn-primary btn-sm" onclick="Views.acceptanceForm(null, '${projectId}')">+ Tạo Biên Bản Nghiệm Thu</button></div>
+                ${acceptances.map(a => `
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <h4>Biên Bản Nghiệm Thu: ${a.item} (${Utils.formatDate(a.date)})</h4>
+                            <div>
+                                <span class="badge ${Utils.badgeClass(a.result)}">${a.result}</span>
+                                <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="Views.acceptanceForm('${a.id}')">✏️ Sửa</button>
+                                <button class="btn btn-danger btn-sm" onclick="Views.deleteAcceptance('${a.id}')">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                        <p style="margin-top:8px;"><strong>Kết luận:</strong> ${a.conclusion}</p>
+                        <div style="margin-top:10px;">
+                            <strong>Tài liệu / Hình ảnh nghiệm thu thực tế:</strong>
+                            ${Utils.renderImageGallery(a.images)}
+                        </div>
+                    </div>
+                `).join('') || '<p>Chưa có biên bản nghiệm thu.</p>'}
+            </div>
+
+            <div id="tab-incidents" class="tab-content" style="display:none;">
+                <div class="action-bar"><button class="btn btn-primary btn-sm" onclick="Views.incidentForm(null, '${projectId}')">+ Báo Cáo Sự Cố</button></div>
+                ${incidents.map(i => `
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <h4>Sự Cố Ngày ${Utils.formatDate(i.date)}: ${i.location} <span class="badge ${Utils.badgeClass(i.status)}">${i.status}</span></h4>
+                            <div>
+                                <button class="btn btn-secondary btn-sm" onclick="Views.incidentForm('${i.id}')">✏️ Sửa</button>
+                                <button class="btn btn-danger btn-sm" onclick="Views.deleteIncident('${i.id}')">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                        <p style="margin-top:8px;"><strong>Mô tả:</strong> ${i.description}</p>
+                        <p><strong>Phương án xử lý:</strong> ${i.solution}</p>
+                        <div style="margin-top:10px;">
+                            <strong>Tài liệu / Ảnh sự cố:</strong>
+                            ${Utils.renderImageGallery(i.images)}
+                        </div>
+                    </div>
+                `).join('') || '<p>Không có sự cố nào ghi nhận.</p>'}
+            </div>
+        `;
+    },
+
+    switchTab: (el, tabId) => {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        el.classList.add('active');
+        document.getElementById(tabId).style.display = 'block';
+    },
+
+    surveys: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Báo Cáo Khảo Sát Bề Mặt';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.surveyForm()">+ Tạo Báo Cáo Khảo Sát</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr><th>Ngày KS</th><th>Công Trình</th><th>Kết Cấu</th><th>Độ Sạch</th><th>Độ Âm/Nhiệt Độ</th><th>Tài Liệu/Hình Ảnh</th><th>Người KS</th><th>Thao Tác</th></tr>
+                    </thead>
+                    <tbody>
+                        ${db.surveys.map(s => `
+                            <tr>
+                                <td>${Utils.formatDate(s.date)}</td>
+                                <td><strong>${Utils.getProjectName(db, s.projectId)}</strong></td>
+                                <td>${s.structure}</td>
+                                <td>${s.cleanLevel}</td>
+                                <td>${s.temp}°C / ${s.humidity}%</td>
+                                <td>${(s.images && s.images.length > 0) ? `<button class="btn btn-secondary btn-sm" onclick="Utils.previewImage('${typeof s.images[0] === 'string' ? s.images[0] : s.images[0].data}')">📷 ${s.images.length} tệp</button>` : 'Không có'}</td>
+                                <td>${s.inspector}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm" onclick="Views.surveyForm('${s.id}')">✏️ Sửa</button>
+                                    <button class="btn btn-danger btn-sm" onclick="Views.deleteSurvey('${s.id}')">🗑️ Xóa</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    },
+
+    surveyForm: (id = null, defaultProjectId = '') => {
+        const db = Store.get();
+        const s = id ? db.surveys.find(x => x.id === id) : {
+            id: 'SUR-' + Date.now().toString().slice(-4), projectId: defaultProjectId || (db.projects[0]?.id || ''),
+            date: new Date().toISOString().split('T')[0], inspector: '', structure: 'Tàu thuyền', cleanLevel: 'Sa 2.5',
+            humidity: 70, temp: 30, dewPoint: 25, rustStatus: '', oldPaintStatus: '', problems: '', actionProposal: '', conclusion: '', images: []
+        };
+
+        Utils.windowImages = [...(s.images || [])];
+
+        Utils.modal(id ? 'Sửa Báo Cáo Khảo Sát' : 'Tạo Báo Cáo Khảo Sát Bề Mặt', `
+            <form onsubmit="Views.saveSurvey(event, '${id || ''}')">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Công Trình</label>
+                        <select id="s-project" class="form-control" required>
+                            ${db.projects.map(p => `<option value="${p.id}" ${s.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày Khảo Sát</label>
+                        <input type="date" id="s-date" class="form-control" value="${s.date}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Người Khảo Sát</label>
+                        <input type="text" id="s-inspector" class="form-control" value="${s.inspector}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kết Cấu Áp Dụng (Gõ chữ hoặc chọn từ danh sách)</label>
+                        <input type="text" id="s-structure" class="form-control" list="structure-options" value="${s.structure}" placeholder="Gõ nhập kết cấu...">
+                        <datalist id="structure-options">
+                            <option value="Tàu thuyền">
+                            <option value="Sàn bê tông">
+                            <option value="Dầm + cột sắt">
+                            <option value="Cống bê tông">
+                            <option value="Container">
+                            <option value="Bồn chứa hóa chất">
+                            <option value="Kết cấu thép ngoài trời">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Độ Sạch Bề Mặt</label>
+                        <input type="text" id="s-clean" class="form-control" value="${s.cleanLevel}">
+                    </div>
+                    <div class="form-group">
+                        <label>Nhiệt Độ (°C) / Độ Ẩm (%)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" id="s-temp" class="form-control" placeholder="°C" value="${s.temp}">
+                            <input type="number" id="s-humidity" class="form-control" placeholder="%" value="${s.humidity}">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Tình Trạng Rỉ Sét & Lớp Sơn Cũ</label>
+                    <textarea id="s-rust" class="form-control" placeholder="Mô tả mức độ rỉ nét, bong tróc...">${s.rustStatus}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Kết Luận & Đề Xuất Xử Lý</label>
+                    <textarea id="s-action" class="form-control" placeholder="Phương pháp làm sạch, đề xuất hệ sơn...">${s.actionProposal}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📁 Tải Tệp / Hình Ảnh Hiện Trường (.jpg, .png, .webp, .heic, .doc, .docx, .xls, .xlsx)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu & Đóng</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveSurvey: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'SUR-' + Date.now().toString().slice(-4),
+            projectId: document.getElementById('s-project').value,
+            date: document.getElementById('s-date').value,
+            inspector: document.getElementById('s-inspector').value,
+            structure: document.getElementById('s-structure').value,
+            cleanLevel: document.getElementById('s-clean').value,
+            temp: parseFloat(document.getElementById('s-temp').value) || 0,
+            humidity: parseFloat(document.getElementById('s-humidity').value) || 0,
+            rustStatus: document.getElementById('s-rust').value,
+            actionProposal: document.getElementById('s-action').value,
+            conclusion: document.getElementById('s-action').value,
+            images: [...Utils.windowImages]
+        };
+
+        if (existingId) {
+            const idx = db.surveys.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.surveys[idx] = item;
+        } else {
+            db.surveys.push(item);
+        }
+
+        Store.set(db);
+        Views.surveys();
+    },
+
+    deleteSurvey: (id) => {
+        if(confirm('Bạn chắc chắn muốn xóa bài khảo sát này?')) {
+            const db = Store.get();
+            db.surveys = db.surveys.filter(x => x.id !== id);
+            Store.set(db);
+            Views.surveys();
+        }
+    },
+
+    specs: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Quy Trình Thi Công Sơn';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.specForm()">+ Tạo Quy Trình Sơn Mới</button>
+            </div>
+            ${db.specs.map(sp => `
+                <div class="card">
+                    <div class="card-title">
+                        <span>⚙️ Hệ Sơn: ${sp.systemName} (Công trình: ${Utils.getProjectName(db, sp.projectId)})</span>
+                        <div>
+                            <button class="btn btn-secondary btn-sm" onclick="Views.specForm('${sp.id}')">✏️ Sửa Quy Trình</button>
+                            <button class="btn btn-danger btn-sm" onclick="Views.deleteSpec('${sp.id}')">🗑️ Xóa</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Hạng Mục Lớp Sơn</th><th>Sản Phẩm</th><th>Độ Dày (DFT)</th><th>Định Mức</th><th>Phương Pháp</th></tr>
+                            </thead>
+                            <tbody>
+                                ${sp.layers.map(l => `
+                                    <tr>
+                                        <td><strong>${l.layerName}</strong></td>
+                                        <td>${l.product}</td>
+                                        <td>${l.dft}</td>
+                                        <td>${l.coverage}</td>
+                                        <td>${l.method} (${l.tool})</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <strong>Bản vẽ / Tài liệu đính kèm:</strong>
+                        ${Utils.renderImageGallery(sp.images)}
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    },
+
+    specForm: (id = null, defaultProjectId = '') => {
+        const db = Store.get();
+        const sp = id ? db.specs.find(x => x.id === id) : {
+            id: 'SPC-' + Date.now().toString().slice(-4), projectId: defaultProjectId || (db.projects[0]?.id || ''),
+            systemName: 'Hệ Sơn Phủ Tiêu Chuẩn', images: [], layers: [
+                { layerName: 'Xử lý bề mặt', product: 'Bắn hạt Sa 2.5', dft: 'N/A', coverage: 'N/A', method: 'Bắn hạt kim loại', tool: 'Máy phun cát', dryTime: 'N/A', notes: '' },
+                { layerName: 'Sơn lót Epoxy', product: 'Primer EP-100', dft: '100 µm', coverage: '0.2 kg/m2', method: 'Phun chân không', tool: 'Máy phun sơn', dryTime: '4h', notes: '' }
+            ]
+        };
+
+        window.currentLayers = [...sp.layers];
+        Utils.windowImages = [...(sp.images || [])];
+
+        const renderLayersUI = () => {
+            const container = document.getElementById('layers-container');
+            if(!container) return;
+            container.innerHTML = window.currentLayers.map((l, index) => `
+                <div style="border:1px solid var(--border); padding:10px; border-radius:6px; margin-bottom:8px; background:#fafafa;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <strong>Lớp ${index + 1}</strong>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="window.currentLayers.splice(${index},1); Views.updateLayersUI();">Xóa Lớp</button>
+                    </div>
+                    <div class="grid grid-2">
+                        <input type="text" class="form-control" placeholder="Tên lớp (Ví dụ: Sơn lót)" value="${l.layerName}" onchange="window.currentLayers[${index}].layerName=this.value">
+                        <input type="text" class="form-control" placeholder="Tên sản phẩm" value="${l.product}" onchange="window.currentLayers[${index}].product=this.value">
+                        <input type="text" class="form-control" placeholder="Độ dày DFT" value="${l.dft}" onchange="window.currentLayers[${index}].dft=this.value">
+                        <input type="text" class="form-control" placeholder="Phương pháp thi công" value="${l.method}" onchange="window.currentLayers[${index}].method=this.value">
+                    </div>
+                </div>
+            `).join('');
+        };
+        Views.updateLayersUI = renderLayersUI;
+
+        Utils.modal(id ? 'Sửa Quy Trình Sơn' : 'Lập Quy Trình Sơn Mới', `
+            <form onsubmit="Views.saveSpec(event, '${id || ''}')">
+                <div class="form-group">
+                    <label>Công Trình</label>
+                    <select id="sp-project" class="form-control" required>
+                        ${db.projects.map(p => `<option value="${p.id}" ${sp.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tên Hệ Sơn Quy Định</label>
+                    <input type="text" id="sp-name" class="form-control" value="${sp.systemName}" required>
+                </div>
+                <hr style="margin:16px 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <label><strong>Danh Sách Các Lớp Sơn Thi Công</strong></label>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.currentLayers.push({layerName:'Sơn phủ', product:'', dft:'80 µm', method:'Phun sơn', tool:'', coverage:'', dryTime:''}); Views.updateLayersUI();">+ Thêm Lớp</button>
+                </div>
+                <div id="layers-container"></div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label>📁 Tải Bản Vẽ / Tài Liệu Mô Tả Quy Trình (.jpg, .png, .webp, .heic, .doc, .docx, .xls, .xlsx)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu Quy Trình Kỹ Thuật</button>
+                </div>
+            </form>
+        `);
+        renderLayersUI();
+        Utils.renderImageUploaderUI();
+    },
+
+    saveSpec: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'SPC-' + Date.now().toString().slice(-4),
+            projectId: document.getElementById('sp-project').value,
+            systemName: document.getElementById('sp-name').value,
+            layers: window.currentLayers,
+            images: [...Utils.windowImages]
+        };
+
+        if(existingId) {
+            const idx = db.specs.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.specs[idx] = item;
+        } else {
+            db.specs.push(item);
+        }
+
+        Store.set(db);
+        Views.specs();
+    },
+
+    deleteSpec: (id) => {
+        if(confirm('Bạn chắc chắn muốn xóa quy trình sơn này?')) {
+            const db = Store.get();
+            db.specs = db.specs.filter(x => x.id !== id);
+            Store.set(db);
+            Views.specs();
+        }
+    },
+
+    supervisions: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Giám Sát Thi Công & Nhật Ký Hằng Ngày';
+
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <div style="display:flex; gap:8px;">
+                    <input type="date" id="filter-sup-date" class="form-control" onchange="Views.filterSupervisions()">
+                    <select id="filter-sup-project" class="form-control" onchange="Views.filterSupervisions()">
+                        <option value="">Tất cả công trình</option>
+                        ${db.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="Views.supervisionForm()">+ Lập Phiếu Giám Sát Ngày</button>
+            </div>
+            <div class="table-container">
+                <table id="tbl-supervisions">
+                    <thead>
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Công Trình</th>
+                            <th>Khu Vực Thi Công</th>
+                            <th>Môi Trường</th>
+                            <th>Sản Phẩm & Lớp Sơn</th>
+                            <th>DFT/WFT</th>
+                            <th>Tài Liệu/Hình Ảnh</th>
+                            <th>Đánh Giá</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        `;
+        Views.filterSupervisions();
+    },
+
+    filterSupervisions: () => {
+        const db = Store.get();
+        const dateVal = document.getElementById('filter-sup-date').value;
+        const prjVal = document.getElementById('filter-sup-project').value;
+
+        const filtered = db.supervisions.filter(s => 
+            (!dateVal || s.date === dateVal) &&
+            (!prjVal || s.projectId === prjVal)
+        );
+
+        const tbody = document.querySelector('#tbl-supervisions tbody');
+        tbody.innerHTML = filtered.map(s => `
+            <tr>
+                <td>${Utils.formatDate(s.date)}</td>
+                <td><strong>${Utils.getProjectName(db, s.projectId)}</strong></td>
+                <td>${s.area}</td>
+                <td>${s.temp}°C | ${s.humidity}%</td>
+                <td>${s.product} (${s.layers})</td>
+                <td>${s.dftWft}</td>
+                <td>${(s.images && s.images.length > 0) ? `<button class="btn btn-secondary btn-sm" onclick="Utils.previewImage('${typeof s.images[0] === 'string' ? s.images[0] : s.images[0].data}')">📷 ${s.images.length} tệp</button>` : 'Không có'}</td>
+                <td><span class="badge ${Utils.badgeClass(s.status)}">${s.status}</span></td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="Views.supervisionForm('${s.id}')">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="Views.deleteSupervision('${s.id}')">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    },
+
+    supervisionForm: (id = null, defaultProjectId = '') => {
+        const db = Store.get();
+        const s = id ? db.supervisions.find(x => x.id === id) : {
+            id: 'SUP-' + Date.now().toString().slice(-4), projectId: defaultProjectId || (db.projects[0]?.id || ''),
+            date: new Date().toISOString().split('T')[0], area: '', team: 'Đội thi công 1', supervisor: '',
+            temp: 30, humidity: 70, dewPoint: 24, weather: 'Nắng', cleanLevel: 'Sa 2.5', roughness: '65 µm',
+            surfTemp: 32, product: '', batchLot: '', ratio: '4:1', mixTime: '08:00', method: 'Phun sơn',
+            layers: 'Lớp 1', dftWft: '100 µm', interval: 'Khô 4h', status: 'Đạt', note: '', images: []
+        };
+
+        Utils.windowImages = [...(s.images || [])];
+
+        Utils.modal(id ? 'Sửa Nhật Ký Giám Sát' : 'Tạo Phiếu Giám Sát Thi Công', `
+            <form onsubmit="Views.saveSupervision(event, '${id || ''}')">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Công Trình</label>
+                        <select id="sp-prj" class="form-control" required>
+                            ${db.projects.map(p => `<option value="${p.id}" ${s.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày Thực Hiện</label>
+                        <input type="date" id="sp-date" class="form-control" value="${s.date}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Khu Vực Thi Công</label>
+                        <input type="text" id="sp-area" class="form-control" value="${s.area}" placeholder="Mạn tàu, Sàn phòng A..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Người Giám Sát</label>
+                        <input type="text" id="sp-supervisor" class="form-control" value="${s.supervisor}" required>
+                    </div>
+                </div>
+
+                <div class="card" style="background:#f8fafc; padding:12px; margin-bottom:12px;">
+                    <div style="font-weight:600; margin-bottom:8px;">🌡️ Thông Số Môi Trường & Bề Mặt</div>
+                    <div class="grid grid-4">
+                        <input type="number" id="sp-temp" class="form-control" placeholder="Nhiệt độ °C" value="${s.temp}">
+                        <input type="number" id="sp-hum" class="form-control" placeholder="Độ ẩm %" value="${s.humidity}">
+                        <input type="text" id="sp-clean" class="form-control" placeholder="Độ sạch" value="${s.cleanLevel}">
+                        <input type="text" id="sp-rough" class="form-control" placeholder="Độ nhám µm" value="${s.roughness}">
+                    </div>
+                </div>
+
+                <div class="card" style="background:#f8fafc; padding:12px; margin-bottom:12px;">
+                    <div style="font-weight:600; margin-bottom:8px;">🎨 Kiểm Tra Thi Công Paint Quality</div>
+                    <div class="grid grid-2">
+                        <input type="text" id="sp-product" class="form-control" placeholder="Tên sản phẩm sơn" value="${s.product}">
+                        <input type="text" id="sp-lot" class="form-control" placeholder="Số Lô/Batch" value="${s.batchLot}">
+                        <input type="text" id="sp-dft" class="form-control" placeholder="Đo DFT / WFT" value="${s.dftWft}">
+                        <select id="sp-status" class="form-control">
+                            ${['Đạt', 'Không đạt', 'Cần xử lý'].map(st => `<option ${s.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ghi Chú & Hành Động Khắc Phục</label>
+                    <textarea id="sp-note" class="form-control">${s.note}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📁 Tải Tệp Đính Kèm / Ảnh Thi Công (.jpg, .png, .webp, .heic, .doc, .docx, .xls, .xlsx)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu Phiếu Giám Sát</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveSupervision: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'SUP-' + Date.now().toString().slice(-4),
+            projectId: document.getElementById('sp-prj').value,
+            date: document.getElementById('sp-date').value,
+            area: document.getElementById('sp-area').value,
+            supervisor: document.getElementById('sp-supervisor').value,
+            temp: parseFloat(document.getElementById('sp-temp').value) || 0,
+            humidity: parseFloat(document.getElementById('sp-hum').value) || 0,
+            cleanLevel: document.getElementById('sp-clean').value,
+            roughness: document.getElementById('sp-rough').value,
+            product: document.getElementById('sp-product').value,
+            batchLot: document.getElementById('sp-lot').value,
+            dftWft: document.getElementById('sp-dft').value,
+            status: document.getElementById('sp-status').value,
+            note: document.getElementById('sp-note').value,
+            layers: 'Lớp sơn thi công',
+            images: [...Utils.windowImages]
+        };
+
+        if(existingId) {
+            const idx = db.supervisions.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.supervisions[idx] = item;
+        } else {
+            db.supervisions.push(item);
+        }
+
+        Store.set(db);
+        Views.filterSupervisions();
+    },
+
+    deleteSupervision: (id) => {
+        if(confirm('Xóa nhật ký giám sát này?')) {
+            const db = Store.get();
+            db.supervisions = db.supervisions.filter(s => s.id !== id);
+            Store.set(db);
+            Views.supervisions();
+        }
+    },
+
+    acceptances: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Biên Bản Nghiệm Thu Kỹ Thuật';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.acceptanceForm()">+ Lập Biên Bản Nghiệm Thu</button>
+            </div>
+            ${db.acceptances.map(a => `
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Biên Bản: ${a.item}</h3>
+                        <div>
+                            <span class="badge ${Utils.badgeClass(a.result)}">${a.result}</span>
+                            <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="Views.acceptanceForm('${a.id}')">✏️ Sửa</button>
+                            <button class="btn btn-danger btn-sm" onclick="Views.deleteAcceptance('${a.id}')">🗑️ Xóa</button>
+                        </div>
+                    </div>
+                    <p style="color:var(--secondary); margin-top:6px;">Công trình: <strong>${Utils.getProjectName(db, a.projectId)}</strong> | Ngày nghiệm thu: ${Utils.formatDate(a.date)}</p>
+                    <hr style="margin:12px 0;">
+                    <p><strong>Nội dung:</strong> ${a.content}</p>
+                    <p><strong>Tiêu chí:</strong> ${a.criteria}</p>
+                    <p><strong>Kết luận:</strong> ${a.conclusion}</p>
+                    <div style="margin-top:10px;">
+                        <strong>Tài liệu / Hình ảnh nghiệm thu:</strong>
+                        ${Utils.renderImageGallery(a.images)}
+                    </div>
+                    <div style="margin-top:16px; display:flex; gap:20px; font-size:0.85rem; color:var(--secondary);">
+                        <div>Chủ đầu tư: <strong>${a.ownerRep}</strong></div>
+                        <div>Nhà thầu: <strong>${a.contractorRep}</strong></div>
+                        <div>Giám sát: <strong>${a.techRep}</strong></div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    },
+
+    acceptanceForm: (id = null, defaultProjectId = '') => {
+        const db = Store.get();
+        const a = id ? db.acceptances.find(x => x.id === id) : {
+            id: 'ACC-' + Date.now().toString().slice(-4), projectId: defaultProjectId || (db.projects[0]?.id || ''),
+            item: 'Nghiệm thu hoàn thiện màng sơn', date: new Date().toISOString().split('T')[0],
+            ownerRep: '', contractorRep: '', techRep: '', content: 'Kiểm tra độ bám dính, độ dày màng sơn khô (DFT) và thẩm mỹ toàn bề mặt.',
+            criteria: 'DFT đạt tiêu chuẩn thiết kế, không bong tróc rỗ khí.', result: 'Đạt', defects: 'Không có', action: '', conclusion: 'Đồng ý nghiệm thu bàn giao.', images: []
+        };
+
+        Utils.windowImages = [...(a.images || [])];
+
+        Utils.modal(id ? 'Sửa Biên Bản Nghiệm Thu' : 'Tạo Biên Bản Nghiệm Thu Kỹ Thuật', `
+            <form onsubmit="Views.saveAcceptance(event, '${id || ''}')">
+                <div class="form-group">
+                    <label>Công Trình</label>
+                    <select id="ac-prj" class="form-control" required>
+                        ${db.projects.map(p => `<option value="${p.id}" ${a.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Hạng Mục Nghiệm Thu</label>
+                        <input type="text" id="ac-item" class="form-control" value="${a.item}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày Nghiệm Thu</label>
+                        <input type="date" id="ac-date" class="form-control" value="${a.date}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Đại Diện Chủ Đầu Tư</label>
+                        <input type="text" id="ac-owner" class="form-control" value="${a.ownerRep}">
+                    </div>
+                    <div class="form-group">
+                        <label>Đại Diện Kỹ Thuật/Giám Sát</label>
+                        <input type="text" id="ac-tech" class="form-control" value="${a.techRep}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Kết Quả Nghiệm Thu</label>
+                    <select id="ac-result" class="form-control">
+                        <option ${a.result === 'Đạt' ? 'selected' : ''}>Đạt</option>
+                        <option ${a.result === 'Không đạt' ? 'selected' : ''}>Không đạt</option>
+                        <option ${a.result === 'Đạt có điều kiện' ? 'selected' : ''}>Đạt có điều kiện</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kết Luận Biên Bản</label>
+                    <textarea id="ac-conclusion" class="form-control">${a.conclusion}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📁 Tải Tệp Đính Kèm / Ảnh Biên Bản (.jpg, .png, .webp, .heic, .doc, .docx, .xls, .xlsx)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Xác Nhận Lưu Biên Bản</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveAcceptance: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'ACC-' + Date.now().toString().slice(-4),
+            projectId: document.getElementById('ac-prj').value,
+            item: document.getElementById('ac-item').value,
+            date: document.getElementById('ac-date').value,
+            ownerRep: document.getElementById('ac-owner').value,
+            contractorRep: 'Đại Diện Nhà Thầu',
+            techRep: document.getElementById('ac-tech').value,
+            content: 'Nghiệm thu chất lượng hoàn thiện màng sơn',
+            criteria: 'Tiêu chuẩn độ dày DFT & bám dính',
+            result: document.getElementById('ac-result').value,
+            conclusion: document.getElementById('ac-conclusion').value,
+            images: [...Utils.windowImages]
+        };
+
+        if (existingId) {
+            const idx = db.acceptances.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.acceptances[idx] = item;
+        } else {
+            db.acceptances.push(item);
+        }
+
+        Store.set(db);
+        Views.acceptances();
+    },
+
+    deleteAcceptance: (id) => {
+        if(confirm('Bạn chắc chắn muốn xóa biên bản nghiệm thu này?')) {
+            const db = Store.get();
+            db.acceptances = db.acceptances.filter(x => x.id !== id);
+            Store.set(db);
+            Views.acceptances();
+        }
+    },
+
+    incidents: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Quản Lý & Xử Lý Sự Cố Kỹ Thuật';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.incidentForm()">+ Báo Cáo Sự Cố Mới</button>
+            </div>
+            ${db.incidents.map(i => `
+                <div class="card" style="border-left: 4px solid var(--danger);">
+                    <div class="card-title">
+                        <span>⚠️ ${i.location} (Công trình: ${Utils.getProjectName(db, i.projectId)})</span>
+                        <span class="badge ${Utils.badgeClass(i.status)}">${i.status}</span>
+                    </div>
+                    <p><strong>Ngày phát sinh:</strong> ${Utils.formatDate(i.date)} | <strong>Hạn xử lý:</strong> ${Utils.formatDate(i.deadline)}</p>
+                    <p><strong>Mô tả sự cố:</strong> ${i.description}</p>
+                    <p><strong>Nguyên nhân dự kiến:</strong> ${i.cause}</p>
+                    <p style="color:var(--primary);"><strong>Phương án xử lý:</strong> ${i.solution}</p>
+                    <div style="margin-top:10px;">
+                        <strong>Tài liệu / Ảnh ghi nhận sự cố:</strong>
+                        ${Utils.renderImageGallery(i.images)}
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="Views.incidentForm('${i.id}')">✏️ Cập Nhật Tiến Độ & Xử Lý</button>
+                        <button class="btn btn-danger btn-sm" onclick="Views.deleteIncident('${i.id}')">🗑️ Xóa Sự Cố</button>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    },
+
+    incidentForm: (id = null, defaultProjectId = '') => {
+        const db = Store.get();
+        const i = id ? db.incidents.find(x => x.id === id) : {
+            id: 'INC-' + Date.now().toString().slice(-4), projectId: defaultProjectId || (db.projects[0]?.id || ''),
+            date: new Date().toISOString().split('T')[0], location: '', description: '', cause: '', solution: '',
+            manager: '', deadline: '', result: '', status: 'Mới phát sinh', images: []
+        };
+
+        Utils.windowImages = [...(i.images || [])];
+
+        Utils.modal(id ? 'Cập Nhật Báo Cáo Sự Cố' : 'Báo Cáo Sự Cố & Khắc Phục Kỹ Thuật', `
+            <form onsubmit="Views.saveIncident(event, '${id || ''}')">
+                <div class="form-group">
+                    <label>Công Trình</label>
+                    <select id="inc-prj" class="form-control" required>
+                        ${db.projects.map(p => `<option value="${p.id}" ${i.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Vị Trí Xảy Ra Sự Cố</label>
+                        <input type="text" id="inc-loc" class="form-control" value="${i.location}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng Thái Sự Cố</label>
+                        <select id="inc-status" class="form-control">
+                            ${['Mới phát sinh', 'Đang xử lý', 'Chờ kiểm tra', 'Đã xử lý', 'Đóng sự cố'].map(st => `<option ${i.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mô Tả Hiện Trạng Sự Cố</label>
+                    <textarea id="inc-desc" class="form-control" required>${i.description}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Phân Tích Nguyên Nhân</label>
+                    <textarea id="inc-cause" class="form-control">${i.cause}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Biện Pháp Khắc Phục / Phương Án Xử Lý</label>
+                    <textarea id="inc-sol" class="form-control">${i.solution}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📁 Tải File Đính Kèm / Ảnh Hiện Trường Sự Cố (.jpg, .png, .webp, .heic, .doc, .docx, .xls, .xlsx)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu Báo Cáo Sự Cố</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveIncident: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'INC-' + Date.now().toString().slice(-4),
+            projectId: document.getElementById('inc-prj').value,
+            location: document.getElementById('inc-loc').value,
+            date: new Date().toISOString().split('T')[0],
+            status: document.getElementById('inc-status').value,
+            description: document.getElementById('inc-desc').value,
+            cause: document.getElementById('inc-cause').value,
+            solution: document.getElementById('inc-sol').value,
+            manager: 'Kỹ Thuật Phụ Trách',
+            deadline: '',
+            result: '',
+            images: [...Utils.windowImages]
+        };
+
+        if(existingId) {
+            const idx = db.incidents.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.incidents[idx] = item;
+        } else {
+            db.incidents.push(item);
+        }
+
+        Store.set(db);
+        Views.incidents();
+    },
+
+    deleteIncident: (id) => {
+        if(confirm('Bạn chắc chắn muốn xóa báo cáo sự cố này?')) {
+            const db = Store.get();
+            db.incidents = db.incidents.filter(x => x.id !== id);
+            Store.set(db);
+            Views.incidents();
+        }
+    },
+
+    sales: () => {
+        const db = Store.get();
+        document.getElementById('page-title').innerText = 'Hỗ Trợ Technical For Sales';
+        document.getElementById('app-view').innerHTML = `
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="Views.salesForm()">+ Tạo Phản Hồi Yêu Cầu Kỹ Thuật</button>
+            </div>
+            ${db.sales.map(s => `
+                <div class="card">
+                    <div class="card-title">
+                        <span>💼 Yêu cầu: ${s.client} - ${s.project}</span>
+                        <div>
+                            <span class="badge ${Utils.badgeClass(s.status)}">${s.status}</span>
+                            <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="Views.salesForm('${s.id}')">✏️ Sửa</button>
+                            <button class="btn btn-danger btn-sm" onclick="Views.deleteSales('${s.id}')">🗑️ Xóa</button>
+                        </div>
+                    </div>
+                    <p><strong>Nội dung Sales yêu cầu:</strong> ${s.content}</p>
+                    <p style="color:var(--primary-light);"><strong>Thông tin kỹ thuật phản hồi:</strong> ${s.techInfo}</p>
+                    <p><strong>Tình trạng hàng hóa/Mượn sơn:</strong> ${s.productStatus} | Khối lượng: ${s.qty}</p>
+                    <div style="margin-top:10px;">
+                        <strong>Tài liệu/Hình ảnh liên quan:</strong>
+                        ${Utils.renderImageGallery(s.images)}
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    },
+
+    salesForm: (id = null) => {
+        const db = Store.get();
+        const s = id ? db.sales.find(x => x.id === id) : {
+            id: 'SAL-' + Date.now().toString().slice(-4), client: '', project: '', date: new Date().toISOString().split('T')[0],
+            requester: 'Sales Team', content: '', techInfo: '', status: 'Chờ xử lý', productStatus: 'Sẵn có', qty: 'Theo dự toán', images: []
+        };
+
+        Utils.windowImages = [...(s.images || [])];
+
+        Utils.modal(id ? 'Sửa Yêu Cầu Hỗ Trợ Sales' : 'Thêm Yêu Cầu Hỗ Trợ Sales', `
+            <form onsubmit="Views.saveSales(event, '${id || ''}')">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Tên Khách Hàng</label>
+                        <input type="text" id="sal-client" class="form-control" value="${s.client}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tên Dự Án/Công Trình</label>
+                        <input type="text" id="sal-project" class="form-control" value="${s.project}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Trạng Thái Xử Lý</label>
+                    <select id="sal-status" class="form-control">
+                        ${['Chờ xử lý', 'Đang hỗ trợ', 'Đã hoàn thành'].map(st => `<option ${s.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nội Dung Cần Kỹ Thuật Hỗ Trợ</label>
+                    <textarea id="sal-content" class="form-control" required>${s.content}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Thông Tin Kỹ Thuật/Tư Vấn Sản Phẩm</label>
+                    <textarea id="sal-info" class="form-control">${s.techInfo}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📁 Tải Tệp Đính Kèm / Tài Liệu So Sánh (.jpg, .png, .webp, .heic, .doc, .docx, .xls, .xlsx)</label>
+                    <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" multiple onchange="Utils.handleImageUpload(this.files)">
+                    <div class="img-grid" id="img-uploader-list"></div>
+                </div>
+
+                <div style="text-align:right; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary" onclick="Utils.closeModal()">Lưu Yêu Cầu</button>
+                </div>
+            </form>
+        `);
+        Utils.renderImageUploaderUI();
+    },
+
+    saveSales: (e, existingId) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const db = Store.get();
+        const item = {
+            id: existingId || 'SAL-' + Date.now().toString().slice(-4),
+            client: document.getElementById('sal-client').value,
+            project: document.getElementById('sal-project').value,
+            date: new Date().toISOString().split('T')[0],
+            requester: 'Sales Team',
+            content: document.getElementById('sal-content').value,
+            techInfo: document.getElementById('sal-info').value,
+            status: document.getElementById('sal-status').value,
+            productStatus: 'Sẵn có',
+            qty: 'Theo dự toán',
+            images: [...Utils.windowImages]
+        };
+
+        if (existingId) {
+            const idx = db.sales.findIndex(x => x.id === existingId);
+            if (idx !== -1) db.sales[idx] = item;
+        } else {
+            db.sales.push(item);
+        }
+
+        Store.set(db);
+        Views.sales();
+    },
+
+    deleteSales: (id) => {
+        if(confirm('Xóa thông tin hỗ trợ Sales này?')) {
+            const db = Store.get();
+            db.sales = db.sales.filter(x => x.id !== id);
+            Store.set(db);
+            Views.sales();
+        }
+    }
+};
+
+/**
+ * Initialize Web App
+ */
+window.onload = () => {
+    Store.init();
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    Nav.go('dashboard');
+};
+// --- BẮT ĐẦU ĐOẠN CODE DÁN VÀO CUỐI THẺ SCRIPT ---
+
+// 1. Cấu hình kết nối Supabase (Thay thông tin của bạn vào đây)
+const SUPABASE_URL = 'https://wxfhchcztpryyksrovlx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_aLdfhtjl9_vmmiSniPwTuQ_ACE7ptwm';
+supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/// 2. Hàm mẫu xử lý lưu trữ kép (Dual-Storage) - Đã tối ưu không sợ quên tham số
+async function saveDualStorageData(payloadData, STORAGE_KEY = 'COATING_CORE_DATA_V1', TABLE_NAME = 'coating_system_data') {
+    // Đóng gói dữ liệu vào cấu trúc cột jsonb của Supabase
+    const rowData = {
+        id: 'id_' + Date.now(),
+        payload: payloadData,
+        updated_at: new Date().toISOString()
+    };
+
+    // Đẩy trực tiếp lên Supabase
+    try {
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .insert([rowData]);
+
+        if (error) throw error;
+        console.log('Đã đồng bộ thành công lên Supabase!');
+        alert('Đã lưu và đồng bộ lên mây thành công!');
+    } catch (err) {
+        console.error('Lỗi đồng bộ Supabase:', err.message);
+        alert('Không thể lưu lên Supabase: ' + err.message);
+    }
+}
+// --- KẾT THÚC ĐOẠN CODE DÁN ---
+
+// (Phần window.onload sẵn có của bạn ở dưới cùng)
+window.onload = () => {
+    Store.init();
+    
+    // Tải dữ liệu từ Supabase về ngay khi khởi động
+    loadDataFromSupabase();
+
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' });
+    Nav.go('dashboard');
+};
+// Hàm tải toàn bộ dữ liệu từ Supabase về khi mở ứng dụng
+async function loadDataFromSupabase() {
+    try {
+        const { data, error } = await supabase
+            .from('coating_system_data')
+            .select('*');
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            console.log('Đã tải thành công dữ liệu từ Supabase:', data);
+            
+            // Trích xuất lại phần payload bên trong các dòng dữ liệu để đưa lên giao diện app của bạn
+            // (Tùy thuộc vào cấu trúc code render của bạn, ví dụ map lấy ra mảng payload)
+            const parsedData = data.map(item => item.payload);
+
+            // Cập nhật lại localStorage trên máy hiện tại để app có cái hiển thị
+            localStorage.setItem('COATING_CORE_DATA_V1', JSON.stringify(parsedData));
+
+            // Gọi lại hàm load/render giao diện của app bạn ở đây (nếu có)
+            // location.reload(); hoặc hàm vẽ lại bảng của bạn
+        }
+    } catch (err) {
+        console.error('Lỗi khi tải dữ liệu từ Supabase:', err.message);
+    }
+}
+
+// Gọi chạy hàm này ngay khi trang web vừa load xong
+window.addEventListener('DOMContentLoaded', () => {
+    loadDataFromSupabase();
+});
+</script>
+</body>
+</html>
